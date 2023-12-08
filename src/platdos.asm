@@ -2,6 +2,7 @@
 bits 16
 jmp start ; Skip utility routines.
 org 100h
+cpu 186
 
 ; = Poll Key =
 
@@ -108,10 +109,11 @@ midi_init:
    push dx
    push ax
    call midi_wait
-   ; TODO: Cancel if MIDI never inits.
+   jnz midi_init_cleanup ; Cancel if MIDI never inits.
    mov ax, 0xff ; 0xff = command to put MPU in UART mode.
    mov dx, 0x331 ; Write to MPU status port.
    out dx, ax ; Output UART command to MPU.
+midi_init_cleanup:
    pop ax
    pop dx
    ret
@@ -122,7 +124,7 @@ midi_note_on:
    push ax ; Stow ax for later.
    push dx ; Stow dx for later.
    call midi_wait
-   ; TODO: Cancel if MIDI never inits.
+   jnz midi_note_on_cleanup ; Cancel if MIDI never allows write.
    mov dx, 0x330
    mov ax, 0x90 ; Set MIDI status to note on.
    or ax, [midi_chan]
@@ -131,6 +133,25 @@ midi_note_on:
    out dx, ax ; Write MIDI pitch byte to MPU.
    mov ax, [midi_vel]
    out dx, ax ; Write MIDI velocity byte to MPU.
+midi_note_on_cleanup:
+   pop dx ; Restore dx stowed at start of midi_note_on.
+   pop ax ; Restore ax stowed at start of midi_note_on.
+   ret
+
+; = MIDI Voice =
+
+midi_voice:
+   push ax ; Stow ax for later.
+   push dx ; Stow dx for later.
+   call midi_wait
+   jnz midi_voice_cleanup ; Cancel if MIDI never allows write.
+   mov dx, 0x330
+   mov ax, 0xc0 ; Set MIDI status to pgmchange.
+   or ax, [midi_chan]
+   out dx, ax ; Write MIDI status byte to MPU.
+   mov ax, [midi_voice]
+   out dx, ax ; Write MIDI voice byte to MPU.
+midi_voice_cleanup:
    pop dx ; Restore dx stowed at start of midi_note_on.
    pop ax ; Restore ax stowed at start of midi_note_on.
    ret

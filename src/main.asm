@@ -126,4 +126,5 @@ y: resb 2
 midi_pitch: resb 1
 midi_vel: resb 1
 midi_chan: resb 1
+midi_Voice: resb 1
 
