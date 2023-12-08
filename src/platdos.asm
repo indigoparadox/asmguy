@@ -31,7 +31,6 @@ scr_setup:
 ; = Clear Screen =
 
 scr_clear_plane:
-   mov ax, 0ffh ; Blocks of whole bytes.
    mov bx, 0b800h ; CGA video memory segment.
    mov es, bx ; Indirectly pass bx to stosb.
    mov cx, 8000 ; (320 Px * 200 Px) / 4 (2-byte pairs) = 8000 bytes each.
@@ -39,8 +38,10 @@ scr_clear_plane:
    ret
 
 scr_clear:
+   mov ax, 0aah ; Blocks of whole bytes.
    mov di, 0h ; Set offset to CGA plane 1.
    call scr_clear_plane
+   mov ax, 055h ; Blocks of whole bytes.
    mov di, 02000h ; Set offset to CGA plane 2.
    call scr_clear_plane
    ret

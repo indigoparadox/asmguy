@@ -102,12 +102,15 @@ int main( int argc, char* argv[] ) {
    uint8_t bmp_px = 0;
    uint32_t iter_line = 0;
    uint32_t cga_plane_sz = 0;
+   
    uint8_t* cga_bytes_plane_1 = NULL;
    uint32_t cga_byte_idx_plane_1 = 0;
    uint8_t cga_bit_idx_plane_1 = 0;
+   
    uint8_t* cga_bytes_plane_2 = NULL;
    uint32_t cga_byte_idx_plane_2 = 0;
    uint8_t cga_bit_idx_plane_2 = 0;
+
    uint8_t* cga_plane_bytes_sel = NULL;
    uint32_t* cga_plane_byte_idx_sel = NULL;
    uint8_t* cga_plane_bit_idx_sel = NULL;
@@ -117,15 +120,15 @@ int main( int argc, char* argv[] ) {
    assert( sizeof( uint16_t ) == 2 );
    assert( sizeof( uint8_t ) == 1 );
 
-   if( 2 > argc ) {
-      printf( "usage: %s <filename>\n", argv[0] );
+   if( 3 > argc ) {
+      fprintf( stderr, "usage: %s <filename> <db name>\n", argv[0] );
       retval = ERR_BADARGS;
       goto cleanup;
    }
 
    bmp_file = fopen( argv[1], "rb" );
    if( NULL == bmp_file ) {
-      printf( "bad file: %s\n", argv[1] );
+      fprintf( stderr, "bad file: %s\n", argv[1] );
       retval = ERR_BADFILE;
       goto cleanup;
    }
@@ -136,14 +139,14 @@ int main( int argc, char* argv[] ) {
    fseek( bmp_file, 0x0a, SEEK_SET );
    fread( &bmp_offset, 4, 1, bmp_file );
    if( bmp_offset >= bmp_sz ) {
-      printf( "bad bitmap sz (%d): %s\n", bmp_offset, argv[1] );
+      fprintf( stderr, "bad bitmap sz (%d): %s\n", bmp_offset, argv[1] );
    }
 
    /* Verify bitmap header size. */
    fseek( bmp_file, 0x0e, SEEK_SET );
    fread( &bmp_type, 4, 1, bmp_file );
    if( 40 != bmp_type ) {
-      printf( "bad bitmap (0x%02x): %s\n", bmp_type, argv[1] );
+      fprintf( stderr, "bad bitmap (0x%02x): %s\n", bmp_type, argv[1] );
       retval = ERR_BADFILE;
       goto cleanup;
    }
@@ -152,7 +155,7 @@ int main( int argc, char* argv[] ) {
    fseek( bmp_file, 0x12, SEEK_SET );
    fread( &bmp_line_w, 4, 1, bmp_file );
    if( 0 == bmp_line_w ) {
-      printf( "bad line width (%d): %s\n", bmp_line_w, argv[1] );
+      fprintf( stderr, "bad line width (%d): %s\n", bmp_line_w, argv[1] );
       retval = ERR_BADFILE;
       goto cleanup;
    }
@@ -161,7 +164,7 @@ int main( int argc, char* argv[] ) {
    fseek( bmp_file, 0x16, SEEK_SET );
    fread( &bmp_lines, 4, 1, bmp_file );
    if( 0 == bmp_lines ) {
-      printf( "bad line count (%d): %s\n", bmp_lines, argv[1] );
+      fprintf( stderr, "bad line count (%d): %s\n", bmp_lines, argv[1] );
       retval = ERR_BADFILE;
       goto cleanup;
    }
@@ -170,7 +173,7 @@ int main( int argc, char* argv[] ) {
    fseek( bmp_file, 0x1c, SEEK_SET );
    fread( &bmp_type, 4, 1, bmp_file );
    if( 8 != bmp_type ) {
-      printf( "bad pixel sz (%d): %s\n", bmp_type, argv[1] );
+      fprintf( stderr, "bad pixel sz (%d): %s\n", bmp_type, argv[1] );
       retval = ERR_BADFILE;
       goto cleanup;
    }
@@ -179,89 +182,112 @@ int main( int argc, char* argv[] ) {
    fseek( bmp_file, 0x1e, SEEK_SET );
    fread( &bmp_type, 4, 1, bmp_file );
    if( 0 != bmp_type ) {
-      printf( "bad compression (0x%02x): %s\n", bmp_type, argv[1] );
+      fprintf( stderr, "bad compression (0x%02x): %s\n", bmp_type, argv[1] );
       retval = ERR_BADFILE;
       goto cleanup;
    }
 
-   cga_plane_sz = ((bmp_lines * bmp_line_w) / 4) / 2;
-   printf( "using CGA plane size: %d\n", cga_plane_sz );
+   assert( 16 == bmp_lines );
+   assert( 16 == bmp_line_w );
+   assert( bmp_lines * bmp_line_w == bmp_sz - bmp_offset );
+   cga_plane_sz = (((bmp_lines * bmp_line_w) / 4) / 2);
+   assert( 0 == cga_plane_sz % 8 );
+   fprintf( stderr, "using CGA plane size for plane 1: %d\n", cga_plane_sz );
    cga_bytes_plane_1 = calloc( cga_plane_sz, 1 );
    if( NULL == cga_bytes_plane_1 ) {
-      printf( "allocation error: CGA plane 1\n" );
+      fprintf( stderr, "allocation error: CGA plane 1\n" );
       retval = ERR_ALLOC;
       goto cleanup;
    }
+   fprintf( stderr, "using CGA plane size for plane 2: %d\n", cga_plane_sz );
    cga_bytes_plane_2 = calloc( cga_plane_sz, 1 );
    if( NULL == cga_bytes_plane_2 ) {
-      printf( "allocation error: CGA plane 1\n" );
+      fprintf( stderr, "allocation error: CGA plane 2\n" );
       retval = ERR_ALLOC;
       goto cleanup;
    }
 
 #ifdef DEBUG_BMP
-   printf( "reading bmp data at 0x%0x:\n", bmp_offset );
+   fprintf( stderr, "reading bmp data at 0x%0x:\n", bmp_offset );
 #endif /* DEBUG_BMP */
 
    fseek( bmp_file, bmp_offset, SEEK_SET );
-   while( iter_pos < bmp_sz ) {
+   iter_pos = bmp_sz - 1;
+   do {
       /* TODO: Handle line padding. */
 
+      fseek( bmp_file, iter_pos, SEEK_SET );
       fread( &bmp_px, 1, 1, bmp_file );
 
 #ifdef DEBUG_BMP
       if( gc_magenta == bmp_px ) {
-         printf( "      " );
+         fprintf( stderr, "." );
       } else {
-         printf( "0x%02x ", bmp_px );
+         fprintf( stderr, "%1x", bmp_px );
       }
 
-      if( 0 == iter_pos % bmp_line_w ) {
-         printf( "\n" );
+      if( 0 == (iter_pos - bmp_offset) % bmp_line_w ) {
+         fprintf( stderr, "\n" );
       }
 #endif /* DEBUG_BMP */
 
       /* TODO: Output CGA bytes. */
-      if( 0 == bmp_lines % 2 ) {
+      /* printf( "pos %d of %d\n", iter_pos, bmp_sz ); */
+      if( 0 == iter_line % 2 ) {
          /* Even plane. */
+         /* fprintf( stderr, "line %d even\n", iter_line ); */
          cga_plane_bytes_sel = cga_bytes_plane_1;
          cga_plane_byte_idx_sel = &cga_byte_idx_plane_1;
          cga_plane_bit_idx_sel = &cga_bit_idx_plane_1;
       } else {
          /* Odd plane. */
+         /* fprintf( stderr, "line %d odd\n", iter_line ); */
          cga_plane_bytes_sel = cga_bytes_plane_2;
          cga_plane_byte_idx_sel = &cga_byte_idx_plane_2;
          cga_plane_bit_idx_sel = &cga_bit_idx_plane_2;
       }
 
+      /* fprintf( stderr, "cga byte %d / %d\n",
+         *cga_plane_byte_idx_sel, cga_plane_sz ); */
+      assert( *cga_plane_byte_idx_sel < cga_plane_sz );
       cga_plane_bytes_sel[*cga_plane_byte_idx_sel] <<= 2;
       cga_plane_bytes_sel[*cga_plane_byte_idx_sel] |= 
-         gc_cga_color_table[bmp_px];
+         (gc_cga_color_table[bmp_px] & 0x03);
 
       /* Figure out the next byte/bit. */
       (*cga_plane_bit_idx_sel) += 2;
+      /* printf( "%d\n", *cga_plane_bit_idx_sel ); */
+      /* printf( "bmp 0x%02x: 0x%02x\n", iter_pos, bmp_px ); */
       if( *cga_plane_bit_idx_sel >= 8 ) {
          *cga_plane_bit_idx_sel = 0;
-         (*cga_plane_byte_idx_sel)++;
+         (*cga_plane_byte_idx_sel) += 1;
+         /* printf( "%s plane byte idx %d\n",
+            0 == iter_line % 2 ? "even" : "odd", *cga_plane_byte_idx_sel ); */
       }
 
       /* Next pixel. */
-      iter_pos++;
-      if( 0 == iter_pos % bmp_line_w ) {
+      iter_pos--;
+      if( 0 == (iter_pos - bmp_offset) % bmp_line_w ) {
          iter_line++;
       }
-   }
+   } while( iter_pos >= bmp_offset );
 
+   printf( "%s: db ", argv[2] );
    for( i = 0 ; cga_plane_sz > i ; i++ ) {
       printf( "0%02xh, ", cga_bytes_plane_1[i] );
    }
    printf( "\n" );
 
-#ifdef DEBUG_BMP
-   printf( "\n" );
-#endif /* DEBUG_BMP */
-
 cleanup:
+
+   if( NULL != cga_bytes_plane_1 ) {
+      free( cga_bytes_plane_1 );
+   }
+
+   if( NULL != cga_bytes_plane_2 ) {
+      free( cga_bytes_plane_2 );
+   }
+
    return retval;
 }
 
