@@ -119,17 +119,20 @@ midi_init:
 ; = MIDI Note On =
 
 midi_note_on:
-   push dx
-   push ax
+   push ax ; Stow ax for later.
+   push dx ; Stow dx for later.
+   call midi_wait
+   ; TODO: Cancel if MIDI never inits.
    mov dx, 0x330
-   mov ax, 0x9f
+   mov ax, 0x90 ; Set MIDI status to note on.
+   or ax, [midi_chan]
    out dx, ax ; Write MIDI status byte to MPU.
-   mov ax, 60
+   mov ax, [midi_pitch]
    out dx, ax ; Write MIDI pitch byte to MPU.
-   mov ax, 127
+   mov ax, [midi_vel]
    out dx, ax ; Write MIDI velocity byte to MPU.
-   pop ax
-   pop dx
+   pop dx ; Restore dx stowed at start of midi_note_on.
+   pop ax ; Restore ax stowed at start of midi_note_on.
    ret
 
 ; = Program End =

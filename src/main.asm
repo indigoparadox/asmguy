@@ -3,6 +3,12 @@
 
 char_mv_right:
    push ax
+   mov ax, 0
+   mov [midi_chan], ax
+   mov ax, 100
+   mov [midi_pitch], ax ; Set MIDI pitch byte.
+   mov ax, 127
+   mov [midi_vel], ax ; Set MIDI velocity byte.
    call midi_note_on
    mov ax, [x]
    inc ax ; Increment X.
@@ -12,6 +18,12 @@ char_mv_right:
 
 char_mv_down:
    push ax
+   mov ax, 0
+   mov [midi_chan], ax
+   mov ax, 60
+   mov [midi_pitch], ax ; Set MIDI pitch byte.
+   mov ax, 127
+   mov [midi_vel], ax ; Set MIDI velocity byte.
    call midi_note_on
    mov ax, [y]
    inc ax ; Increment Y.
@@ -21,6 +33,12 @@ char_mv_down:
 
 char_mv_up:
    push ax
+   mov ax, 0
+   mov [midi_chan], ax
+   mov ax, 80
+   mov [midi_pitch], ax ; Set MIDI pitch byte.
+   mov ax, 127
+   mov [midi_vel], ax ; Set MIDI velocity byte.
    call midi_note_on
    mov ax, [y]
    dec ax ; Decrement Y.
@@ -30,6 +48,12 @@ char_mv_up:
 
 char_mv_left:
    push ax
+   mov ax, 0
+   mov [midi_chan], ax
+   mov ax, 40
+   mov [midi_pitch], ax ; Set MIDI pitch byte.
+   mov ax, 127
+   mov [midi_vel], ax ; Set MIDI velocity byte.
    call midi_note_on
    mov ax, [x]
    dec ax ; Decrement X.
@@ -99,4 +123,7 @@ end:
 
 x: resb 2
 y: resb 2
+midi_pitch: resb 1
+midi_vel: resb 1
+midi_chan: resb 1
 
