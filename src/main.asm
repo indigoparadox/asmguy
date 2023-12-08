@@ -10,18 +10,8 @@ scr_setup_done:
 
 ; = Program Main Loop =
 
-   mov si, s_maid01
-   mov bx, 0b800h ; CGA video memory segment.
-   mov ds, bx ; Indirectly pass bx to stosb.
-   mov di, 0h ; Set offset to CGA plane 1.
-   movsd
-
-   mov si, s_maid01 + 4
-   mov bx, 0b800h ; CGA video memory segment.
-   mov ds, bx ; Indirectly pass bx to stosb.
-   mov di, 02000h ; Set offset to CGA plane 2.
-   movsd
-
+   mov si, s_maid01_e ; Load si with address of maid sprite.
+   call sprite_copy
 loop:
    call poll_key
    jz loop ; Loop if no key pressed.

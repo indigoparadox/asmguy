@@ -46,6 +46,31 @@ scr_clear:
    call scr_clear_plane
    ret
 
+; = Copy Sprite =
+
+sprite_copy:
+   mov bx, 0b800h ; CGA video memory segment.
+   mov es, bx ; Indirectly pass bx to movsb.
+   mov cx, 0 ; Initialize offset in lines.
+   push ax ; Stow ax for a moment.
+   push dx ; Stow dx for a moment.
+sprite_copy_start:
+   mov ax, cx ; Offset in lines.
+   mov dx, 80 ; Multiply ax by screen width (80 bytes).
+   mul dx ; Multiply ax (cx/lines offset) by ax (screen width in bytes).
+   mov di, ax ; Move result into destination offset.
+   push cx ; Stop loop counter.
+   mov cx, 4 ; rep movsb 4 times (4 * 4 px (1 byte) = 16px)
+   rep movsb ; Perform the blit.
+   pop cx ; Restore loop counter.
+   inc cx ; Increment cx (lines copied).
+   cmp cx, 8 ; Copied 8 rows yet?
+   jl sprite_copy_start ; Keep copying lines.
+sprite_copy_cleanup:
+   pop ax ; Restore original ax.
+   pop dx ; Restore original ax.
+   ret
+
 ; = Program End =
 
 prog_shutdown:
