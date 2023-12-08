@@ -10,6 +10,10 @@ scr_setup_done:
 
 ; = Program Main Loop =
 
+   mov ax, 5
+   mov [x], ax
+   mov ax, 10
+   mov [y], ax
    mov si, s_maid01_e ; Load si with address of maid sprite.
    call sprite_copy
 loop:
@@ -26,4 +30,7 @@ end:
 %include "src/assets.asm"
 
 [SECTION .bss]
+
+x: resb 2
+y: resb 2
 
