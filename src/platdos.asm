@@ -56,18 +56,23 @@ sprite_copy:
    push dx ; Stow dx for a moment.
    mov cx, 0 ; Initialize offset in lines.
 sprite_copy_start:
-   mov ax, [y] ; Offset vertically by [y] in .bss.
-   add ax, cx ; Offset vertically by iterated lines in current sprite.
+   mov ax, cx ; Offset vertically by iterated lines in current sprite.
+   shr ax, 1 ; Shift 1, divide lines by 2.
+   add ax, [y] ; Offset vertically by [y] in .bss.
    mov dx, 80 ; Multiply ax by screen width (80 bytes).
    mul dx ; Multiply ax (cx/lines offset) by ax (screen width in bytes).
    add ax, [x] ; Offset horizontally by [x] in .bss.
    mov di, ax ; Move result into destination offset.
-   push cx ; Stop loop counter.
+   test cx, 1 ; Check if cx/lines offset is even.
+   jz sprite_copy_line
+   add di, 2000h ; If not even, copy to second CGA plane.
+sprite_copy_line:
+   push cx ; Stow loop counter.
    mov cx, 4 ; rep movsb 4 times (4 * 4 px (1 byte) = 16px)
    rep movsb ; Perform the blit.
    pop cx ; Restore loop counter.
    inc cx ; Increment cx (lines copied).
-   cmp cx, 8 ; Copied 8 rows yet?
+   cmp cx, 16 ; Copied 16 lines yet?
    jl sprite_copy_start ; Keep copying lines.
 sprite_copy_cleanup:
    pop dx ; Restore original dx.

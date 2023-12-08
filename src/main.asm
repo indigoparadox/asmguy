@@ -1,6 +1,30 @@
 
 %include "src/platdos.asm"
 
+char_mv_right:
+   mov ax, [x]
+   inc ax ; Increment X.
+   mov [x], ax
+   ret
+
+char_mv_down:
+   mov ax, [y]
+   inc ax ; Increment Y.
+   mov [y], ax
+   ret
+
+char_mv_up:
+   mov ax, [y]
+   dec ax ; Decrement Y.
+   mov [y], ax
+   ret
+
+char_mv_left:
+   mov ax, [x]
+   dec ax ; Decrement X.
+   mov [x], ax
+   ret
+
 ; = Program Start/Setup =
 
 start:
@@ -11,14 +35,42 @@ scr_setup_done:
 ; = Program Main Loop =
 
    mov ax, 5
-   mov [x], ax
+   mov [x], ax ; Initialize X coord of sprite.
    mov ax, 10
-   mov [y], ax
+   mov [y], ax ; Initialize Y coord of sprite.
+
+loop:
    mov si, s_maid01_e ; Load si with address of maid sprite.
    call sprite_copy
-loop:
+
    call poll_key
+check_q:
    jz loop ; Loop if no key pressed.
+   cmp al, 'q' ; Check for key 'q'.
+   jne check_d ; Skip to next check.
+   jmp end ; Quit on 'q'.
+check_d:
+   cmp al, 'd' ; Check for key 'd'.
+   jne check_s ; Skip to next check.
+   call char_mv_right
+   jmp loop
+check_s:
+   cmp al, 's' ; Check for key 's'.
+   jne check_w ; Skip to next check.
+   call char_mv_down
+   jmp loop
+check_w:
+   cmp al, 'w' ; Check for key 'w'.
+   jne check_a ; Skip to next check.
+   call char_mv_up
+   jmp loop
+check_a:
+   cmp al, 'a' ; Check for key 'a'.
+   jne check_done ; Skip to next check.
+   call char_mv_left
+   jmp loop
+check_done:
+   jmp loop
 
 ; = Program Cleanup =
 

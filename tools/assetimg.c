@@ -103,18 +103,10 @@ int main( int argc, char* argv[] ) {
    uint32_t iter_line = 0;
    uint32_t cga_plane_sz = 0;
    
-   uint8_t* cga_bytes_plane_1 = NULL;
-   uint32_t cga_byte_idx_plane_1 = 0;
-   uint8_t cga_bit_idx_plane_1 = 0;
+   uint8_t* cga_bytes_plane = NULL;
+   uint32_t cga_byte_idx_plane = 0;
+   uint8_t cga_bit_idx_plane = 0;
    
-   uint8_t* cga_bytes_plane_2 = NULL;
-   uint32_t cga_byte_idx_plane_2 = 0;
-   uint8_t cga_bit_idx_plane_2 = 0;
-
-   uint8_t* cga_plane_bytes_sel = NULL;
-   uint32_t* cga_plane_byte_idx_sel = NULL;
-   uint8_t* cga_plane_bit_idx_sel = NULL;
-
    assert( sizeof( int32_t ) == 4 );
    assert( sizeof( uint32_t ) == 4 );
    assert( sizeof( uint16_t ) == 2 );
@@ -190,19 +182,12 @@ int main( int argc, char* argv[] ) {
    assert( 16 == bmp_lines );
    assert( 16 == bmp_line_w );
    assert( bmp_lines * bmp_line_w == bmp_sz - bmp_offset );
-   cga_plane_sz = (((bmp_lines * bmp_line_w) / 4) / 2);
+   cga_plane_sz = ((bmp_lines * bmp_line_w) / 4);
    assert( 0 == cga_plane_sz % 8 );
-   fprintf( stderr, "using CGA plane size for plane 1: %d\n", cga_plane_sz );
-   cga_bytes_plane_1 = calloc( cga_plane_sz, 1 );
-   if( NULL == cga_bytes_plane_1 ) {
+   fprintf( stderr, "using CGA plane size for plane: %d\n", cga_plane_sz );
+   cga_bytes_plane = calloc( cga_plane_sz, 1 );
+   if( NULL == cga_bytes_plane ) {
       fprintf( stderr, "allocation error: CGA plane 1\n" );
-      retval = ERR_ALLOC;
-      goto cleanup;
-   }
-   fprintf( stderr, "using CGA plane size for plane 2: %d\n", cga_plane_sz );
-   cga_bytes_plane_2 = calloc( cga_plane_sz, 1 );
-   if( NULL == cga_bytes_plane_2 ) {
-      fprintf( stderr, "allocation error: CGA plane 2\n" );
       retval = ERR_ALLOC;
       goto cleanup;
    }
@@ -231,38 +216,22 @@ int main( int argc, char* argv[] ) {
       }
 #endif /* DEBUG_BMP */
 
-      /* TODO: Output CGA bytes. */
-      /* printf( "pos %d of %d\n", iter_pos, bmp_sz ); */
-      if( 0 == iter_line % 2 ) {
-         /* Even plane. */
-         /* fprintf( stderr, "line %d even\n", iter_line ); */
-         cga_plane_bytes_sel = cga_bytes_plane_1;
-         cga_plane_byte_idx_sel = &cga_byte_idx_plane_1;
-         cga_plane_bit_idx_sel = &cga_bit_idx_plane_1;
-      } else {
-         /* Odd plane. */
-         /* fprintf( stderr, "line %d odd\n", iter_line ); */
-         cga_plane_bytes_sel = cga_bytes_plane_2;
-         cga_plane_byte_idx_sel = &cga_byte_idx_plane_2;
-         cga_plane_bit_idx_sel = &cga_bit_idx_plane_2;
-      }
-
       /* fprintf( stderr, "cga byte %d / %d\n",
-         *cga_plane_byte_idx_sel, cga_plane_sz ); */
-      assert( *cga_plane_byte_idx_sel < cga_plane_sz );
-      cga_plane_bytes_sel[*cga_plane_byte_idx_sel] <<= 2;
-      cga_plane_bytes_sel[*cga_plane_byte_idx_sel] |= 
+         cga_byte_idx_plane, cga_plane_sz ); */
+      assert( cga_byte_idx_plane < cga_plane_sz );
+      cga_bytes_plane[cga_byte_idx_plane] <<= 2;
+      cga_bytes_plane[cga_byte_idx_plane] |= 
          (gc_cga_color_table[bmp_px] & 0x03);
 
       /* Figure out the next byte/bit. */
-      (*cga_plane_bit_idx_sel) += 2;
-      /* printf( "%d\n", *cga_plane_bit_idx_sel ); */
+      (cga_bit_idx_plane) += 2;
+      /* printf( "%d\n", cga_bit_idx_plane ); */
       /* printf( "bmp 0x%02x: 0x%02x\n", iter_pos, bmp_px ); */
-      if( *cga_plane_bit_idx_sel >= 8 ) {
-         *cga_plane_bit_idx_sel = 0;
-         (*cga_plane_byte_idx_sel) += 1;
+      if( cga_bit_idx_plane >= 8 ) {
+         cga_bit_idx_plane = 0;
+         (cga_byte_idx_plane) += 1;
          /* printf( "%s plane byte idx %d\n",
-            0 == iter_line % 2 ? "even" : "odd", *cga_plane_byte_idx_sel ); */
+            0 == iter_line % 2 ? "even" : "odd", cga_byte_idx_plane ); */
       }
 
       /* Next pixel. */
@@ -274,24 +243,14 @@ int main( int argc, char* argv[] ) {
 
    printf( "%s_e: db ", argv[2] );
    for( i = 0 ; cga_plane_sz > i ; i++ ) {
-      printf( "0%02xh, ", cga_bytes_plane_1[i] );
-   }
-   printf( "\n" );
-
-   printf( "%s_o: db ", argv[2] );
-   for( i = 0 ; cga_plane_sz > i ; i++ ) {
-      printf( "0%02xh, ", cga_bytes_plane_2[i] );
+      printf( "0%02xh, ", cga_bytes_plane[i] );
    }
    printf( "\n" );
 
 cleanup:
 
-   if( NULL != cga_bytes_plane_1 ) {
-      free( cga_bytes_plane_1 );
-   }
-
-   if( NULL != cga_bytes_plane_2 ) {
-      free( cga_bytes_plane_2 );
+   if( NULL != cga_bytes_plane ) {
+      free( cga_bytes_plane );
    }
 
    return retval;
