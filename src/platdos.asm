@@ -80,6 +80,58 @@ sprite_copy_cleanup:
    pop ax ; Restore original ax.
    ret
 
+; = MIDI Wait =
+
+midi_wait:
+   push cx
+   push dx
+   mov cx, 30 ; Wait 30 tries.
+   mov dx, 0x331 ; Check MPU status port.
+midi_wait_loop:
+   in ax, dx ; Get MPU status.
+   test ax, 0x40 ; Check if MPU ready flag set.
+   jnz midi_wait_ready
+   dec cx ; Decrement timer.
+   cmp cx, 0 ; Check if timeout exceeded.
+   je midi_wait_timeout
+   jmp midi_wait_loop
+midi_wait_timeout:
+   xor ax, ax ; Zero ax before returning.
+midi_wait_ready:
+   pop dx
+   pop cx
+   ret
+
+; = MIDI Init =
+
+midi_init:
+   push dx
+   push ax
+   call midi_wait
+   ; TODO: Cancel if MIDI never inits.
+   mov ax, 0xff ; 0xff = command to put MPU in UART mode.
+   mov dx, 0x331 ; Write to MPU status port.
+   out dx, ax ; Output UART command to MPU.
+   pop ax
+   pop dx
+   ret
+
+; = MIDI Note On =
+
+midi_note_on:
+   push dx
+   push ax
+   mov dx, 0x330
+   mov ax, 0x9f
+   out dx, ax ; Write MIDI status byte to MPU.
+   mov ax, 60
+   out dx, ax ; Write MIDI pitch byte to MPU.
+   mov ax, 127
+   out dx, ax ; Write MIDI velocity byte to MPU.
+   pop ax
+   pop dx
+   ret
+
 ; = Program End =
 
 prog_shutdown:

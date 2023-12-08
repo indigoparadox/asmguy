@@ -2,27 +2,39 @@
 %include "src/platdos.asm"
 
 char_mv_right:
+   push ax
+   call midi_note_on
    mov ax, [x]
    inc ax ; Increment X.
    mov [x], ax
+   pop ax
    ret
 
 char_mv_down:
+   push ax
+   call midi_note_on
    mov ax, [y]
    inc ax ; Increment Y.
    mov [y], ax
+   pop ax
    ret
 
 char_mv_up:
+   push ax
+   call midi_note_on
    mov ax, [y]
    dec ax ; Decrement Y.
    mov [y], ax
+   pop ax
    ret
 
 char_mv_left:
+   push ax
+   call midi_note_on
    mov ax, [x]
    dec ax ; Decrement X.
    mov [x], ax
+   pop ax
    ret
 
 ; = Program Start/Setup =
@@ -38,6 +50,8 @@ scr_setup_done:
    mov [x], ax ; Initialize X coord of sprite.
    mov ax, 10
    mov [y], ax ; Initialize Y coord of sprite.
+
+   call midi_init
 
 loop:
    mov si, s_maid01_e ; Load si with address of maid sprite.
