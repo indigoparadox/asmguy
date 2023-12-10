@@ -241,7 +241,7 @@ int main( int argc, char* argv[] ) {
       }
    } while( iter_pos >= bmp_offset );
 
-   printf( "%s_e: db ", argv[2] );
+   printf( "%s: db ", argv[2] );
    for( i = 0 ; cga_plane_sz > i ; i++ ) {
       printf( "0%02xh, ", cga_bytes_plane[i] );
    }

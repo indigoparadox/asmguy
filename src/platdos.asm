@@ -6,6 +6,8 @@ jmp start ; Skip utility routines.
 
 ; = Poll Key =
 
+; Registers out: ax = 0 if no key pressed.
+
 poll_key:
    mov ah, 1 ; BIOS 16h service 1 (get key state).
    int 016h ; Call keyboard interrupt.
@@ -140,18 +142,18 @@ midi_note_on_cleanup:
 
 ; = MIDI Voice =
 
-midi_voice:
+midi_set_voice:
    push ax ; Stow ax for later.
    push dx ; Stow dx for later.
    call midi_wait
-   jnz midi_voice_cleanup ; Cancel if MIDI never allows write.
+   jnz midi_set_voice_cleanup ; Cancel if MIDI never allows write.
    mov dx, 0x330
    mov ax, 0xc0 ; Set MIDI status to pgmchange.
    or ax, [midi_chan]
    out dx, ax ; Write MIDI status byte to MPU.
    mov ax, [midi_voice]
    out dx, ax ; Write MIDI voice byte to MPU.
-midi_voice_cleanup:
+midi_set_voice_cleanup:
    pop dx ; Restore dx stowed at start of midi_note_on.
    pop ax ; Restore ax stowed at start of midi_note_on.
    ret
