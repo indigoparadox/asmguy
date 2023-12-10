@@ -1,8 +1,8 @@
 
 bits 16
-jmp start ; Skip utility routines.
 org 100h
 cpu 186
+jmp start ; Skip utility routines.
 
 ; = Poll Key =
 
