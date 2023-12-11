@@ -123,18 +123,23 @@ midi_init_cleanup:
 ; = MIDI Note On =
 
 midi_note_on:
-   push ax ; Stow ax for later.
-   push dx ; Stow dx for later.
+   push ax ; Stow ax for later. (+2)
+   push dx ; Stow dx for later. (+2)
    call midi_wait
    jnz midi_note_on_cleanup ; Cancel if MIDI never allows write.
-   mov dx, 0x330
+   push bp ; Stow stack frame.
+   mov bp, sp ; Put stack pointer on bp so we can do arithmetic below.
+   and sp, 0xfff0 ; Align stack to allow arithmetic below.
+   mov dx, 0x330 ; Set MIDI register.
    mov ax, 0x90 ; Set MIDI status to note on.
-   or ax, [midi_chan]
+   or ax, [bp + 8] ; Channel, after +2 (ax) +2 (dx) +2 (bp) +2 (call/ret).
    out dx, ax ; Write MIDI status byte to MPU.
-   mov ax, [midi_pitch]
+   mov ax, [bp + 10] ; Pitch, after +2 (ax) +2 (dx) +2 (bp) +2 (call/ret) +2.
    out dx, ax ; Write MIDI pitch byte to MPU.
-   mov ax, [midi_vel]
+   mov ax, [bp + 12] ; Velocity, after +2 (ax) +2 (dx) +2 (bp) +2 (call/ret) +4.
    out dx, ax ; Write MIDI velocity byte to MPU.
+   mov sp, bp ; Restore stack pointer.
+   pop bp ; Restore stack frame stored at start of midi_note_on.
 midi_note_on_cleanup:
    pop dx ; Restore dx stowed at start of midi_note_on.
    pop ax ; Restore ax stowed at start of midi_note_on.
@@ -142,21 +147,21 @@ midi_note_on_cleanup:
 
 ; = MIDI Voice =
 
-midi_set_voice:
-   push ax ; Stow ax for later.
-   push dx ; Stow dx for later.
-   call midi_wait
-   jnz midi_set_voice_cleanup ; Cancel if MIDI never allows write.
-   mov dx, 0x330
-   mov ax, 0xc0 ; Set MIDI status to pgmchange.
-   or ax, [midi_chan]
-   out dx, ax ; Write MIDI status byte to MPU.
-   mov ax, [midi_voice]
-   out dx, ax ; Write MIDI voice byte to MPU.
-midi_set_voice_cleanup:
-   pop dx ; Restore dx stowed at start of midi_note_on.
-   pop ax ; Restore ax stowed at start of midi_note_on.
-   ret
+;midi_set_voice:
+;   push ax ; Stow ax for later.
+;   push dx ; Stow dx for later.
+;   call midi_wait
+;   jnz midi_set_voice_cleanup ; Cancel if MIDI never allows write.
+;   mov dx, 0x330
+;   mov ax, 0xc0 ; Set MIDI status to pgmchange.
+;   or ax, [midi_chan]
+;   out dx, ax ; Write MIDI status byte to MPU.
+;   mov ax, [midi_voice]
+;   out dx, ax ; Write MIDI voice byte to MPU.
+;midi_set_voice_cleanup:
+;   pop dx ; Restore dx stowed at start of midi_note_on.
+;   pop ax ; Restore ax stowed at start of midi_note_on.
+;   ret
 
 ; = Program End =
 

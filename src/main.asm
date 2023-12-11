@@ -2,14 +2,14 @@
 %include "src/platdos.asm"
 
 char_mv_right:
-   push ax
-   mov ax, 0
-   mov [midi_chan], ax
-   mov ax, 100
-   mov [midi_pitch], ax ; Set MIDI pitch byte.
-   mov ax, 127
-   mov [midi_vel], ax ; Set MIDI velocity byte.
+   push 127
+   push 100
+   push 0
    call midi_note_on
+   pop ax
+   pop ax
+   pop ax
+   push ax
    mov ax, [x]
    inc ax ; Increment X.
    mov [x], ax
@@ -17,14 +17,14 @@ char_mv_right:
    ret
 
 char_mv_down:
-   push ax
-   mov ax, 0
-   mov [midi_chan], ax
-   mov ax, 60
-   mov [midi_pitch], ax ; Set MIDI pitch byte.
-   mov ax, 127
-   mov [midi_vel], ax ; Set MIDI velocity byte.
+   push 127
+   push 60
+   push 0
    call midi_note_on
+   pop ax
+   pop ax
+   pop ax
+   push ax
    mov ax, [y]
    inc ax ; Increment Y.
    mov [y], ax
@@ -32,14 +32,14 @@ char_mv_down:
    ret
 
 char_mv_up:
-   push ax
-   mov ax, 0
-   mov [midi_chan], ax
-   mov ax, 80
-   mov [midi_pitch], ax ; Set MIDI pitch byte.
-   mov ax, 127
-   mov [midi_vel], ax ; Set MIDI velocity byte.
+   push 127
+   push 80
+   push 0
    call midi_note_on
+   pop ax
+   pop ax
+   pop ax
+   push ax
    mov ax, [y]
    dec ax ; Decrement Y.
    mov [y], ax
@@ -47,14 +47,14 @@ char_mv_up:
    ret
 
 char_mv_left:
-   push ax
-   mov ax, 0
-   mov [midi_chan], ax
-   mov ax, 40
-   mov [midi_pitch], ax ; Set MIDI pitch byte.
-   mov ax, 127
-   mov [midi_vel], ax ; Set MIDI velocity byte.
+   push 127
+   push 80
+   push 0
    call midi_note_on
+   pop ax
+   pop ax
+   pop ax
+   push ax
    mov ax, [x]
    dec ax ; Decrement X.
    mov [x], ax
@@ -120,8 +120,4 @@ keys_cb: dw char_mv_up, char_mv_down, char_mv_left, char_mv_right, char_q, 0
 
 x: resb 2
 y: resb 2
-midi_pitch: resb 1
-midi_vel: resb 1
-midi_chan: resb 1
-midi_voice: resb 1
 
