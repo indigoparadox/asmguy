@@ -123,25 +123,25 @@ midi_init_cleanup:
 ; = MIDI Note On =
 
 midi_note_on:
+   push bp ; Stow stack bottom.
+   mov bp, sp ; Put stack pointer on bp so we can do arithmetic below.
    push ax ; Stow ax for later. (+2)
    push dx ; Stow dx for later. (+2)
    call midi_wait
    jnz midi_note_on_cleanup ; Cancel if MIDI never allows write.
-   push bp ; Stow stack frame.
-   mov bp, sp ; Put stack pointer on bp so we can do arithmetic below.
    mov dx, 0x330 ; Set MIDI register.
    mov ax, 0x90 ; Set MIDI status to note on.
-   or ax, [bp + 8] ; Channel, after +2 (ax) +2 (dx) +2 (bp) +2 (call/ret).
+   or ax, [bp + 4] ; Channel, after +2 (ax) +2 (dx) +2 (bp) +2 (call/ret).
    out dx, ax ; Write MIDI status byte to MPU.
-   mov ax, [bp + 10] ; Pitch, after +2 (ax) +2 (dx) +2 (bp) +2 (call/ret) +2.
+   mov ax, [bp + 6] ; Pitch, after +2 (ax) +2 (dx) +2 (bp) +2 (call/ret) +2.
    out dx, ax ; Write MIDI pitch byte to MPU.
-   mov ax, [bp + 12] ; Velocity, after +2 (ax) +2 (dx) +2 (bp) +2 (call/ret) +4.
+   mov ax, [bp + 8] ; Velocity, after +2 (ax) +2 (dx) +2 (bp) +2 (call/ret) +4.
    out dx, ax ; Write MIDI velocity byte to MPU.
-   pop bp ; Restore stack frame stored at start of midi_note_on.
 midi_note_on_cleanup:
    pop dx ; Restore dx stowed at start of midi_note_on.
    pop ax ; Restore ax stowed at start of midi_note_on.
-   ret
+   pop bp ; Restore stack bottom stored at start of midi_note_on.
+   ret 6 ; Return and dispose of 3 word args (chan/pitch/vel).
 
 ; = MIDI Voice =
 
