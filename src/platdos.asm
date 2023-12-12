@@ -1,7 +1,7 @@
 
-bits 16
-org 100h
-cpu 186
+bits 16 ; Assume we're using 16-bit instructions by default.
+org 100h ; Tell the assembler where the program will be loaded.
+cpu 186 ; Tell the assembler not to allow instructions for the 286+.
 jmp start ; Skip utility routines.
 
 ; = Poll Key =
@@ -129,7 +129,6 @@ midi_note_on:
    jnz midi_note_on_cleanup ; Cancel if MIDI never allows write.
    push bp ; Stow stack frame.
    mov bp, sp ; Put stack pointer on bp so we can do arithmetic below.
-   and sp, 0xfff0 ; Align stack to allow arithmetic below.
    mov dx, 0x330 ; Set MIDI register.
    mov ax, 0x90 ; Set MIDI status to note on.
    or ax, [bp + 8] ; Channel, after +2 (ax) +2 (dx) +2 (bp) +2 (call/ret).
@@ -138,7 +137,6 @@ midi_note_on:
    out dx, ax ; Write MIDI pitch byte to MPU.
    mov ax, [bp + 12] ; Velocity, after +2 (ax) +2 (dx) +2 (bp) +2 (call/ret) +4.
    out dx, ax ; Write MIDI velocity byte to MPU.
-   mov sp, bp ; Restore stack pointer.
    pop bp ; Restore stack frame stored at start of midi_note_on.
 midi_note_on_cleanup:
    pop dx ; Restore dx stowed at start of midi_note_on.

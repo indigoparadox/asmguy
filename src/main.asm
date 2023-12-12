@@ -17,7 +17,6 @@ char_mv:
    pop ax ; Dispose of velocity.
    push bp ; Stow stack frame.
    mov bp, sp ; Put stack pointer on bp so we can do arithmetic below.
-   and sp, 0xfff0 ; Align stack to allow arithmetic below.
    mov si, [bp + 6] ; Put the address of the char's location in si.
    cmp word [bp + 4], 1 ; Check the stack arg to see if we inc/dec.
    je char_mv_inc
@@ -28,7 +27,6 @@ char_mv_inc:
 char_mv_dec:
    dec word [si] ; Increment X.
 char_mv_cleanup:
-   mov sp, bp ; Restore stack pointer.
    pop bp ; Restore stack frame stored at start of midi_note_on.
    ret
 
