@@ -44,7 +44,7 @@ scr_clear_plane:
 
 scr_clear:
    mov ax, 0aah ; Blocks of whole bytes.
-   mov di, 0h ; Set offset to CGA plane 1.
+   xor di, di ; Set offset to CGA plane 1.
    call scr_clear_plane
    mov ax, 055h ; Blocks of whole bytes.
    mov di, 02000h ; Set offset to CGA plane 2.
@@ -53,35 +53,44 @@ scr_clear:
 
 ; = Copy Sprite =
 
+; Stack:
+; - Pointer to the sprite data to XOR.
+; - Y coordinate to draw on-screen.
+; - X coordinate to draw on-screen.
+
 sprite_copy:
-   push ax ; Stow ax for a moment.
-   push cx ; Stow cx for a moment.
-   push dx ; Stow dx for a moment.
+   push bp ; Stow stack bottom.
+   mov bp, sp ; Put stack pointer on bp so we can do arithmetic below.
+   push ax ; Stow ax for a moment (Working reg).
+   push cx ; Stow cx for a moment (Loop counter).
+   push dx ; Stow dx for a moment (Used by mul).
+   mov si, [bp + 8]
    mov cx, 0 ; Initialize offset in lines.
 sprite_copy_start:
    mov ax, cx ; Offset vertically by iterated lines in current sprite.
    shr ax, 1 ; Shift 1, divide lines by 2.
-   add ax, [y] ; Offset vertically by [y] in .bss.
+   add ax, [bp + 6] ; Offset vertically by Y coord.
    mov dx, 80 ; Multiply ax by screen width (80 bytes).
-   mul dx ; Multiply ax (cx/lines offset) by ax (screen width in bytes).
-   add ax, [x] ; Offset horizontally by [x] in .bss.
+   mul dx ; Multiply ax (cx/lines offset) by dx (screen width in bytes).
+   add ax, [bp + 4] ; Offset horizontally by X coord.
    mov di, ax ; Move result into destination offset.
    test cx, 1 ; Check if cx/lines offset is even.
    jz sprite_copy_line
    add di, 2000h ; If not even, copy to second CGA plane.
 sprite_copy_line:
-   push cx ; Stow loop counter.
-   mov cx, 4 ; rep movsb 4 times (4 * 4 px (1 byte) = 16px)
-   rep movsb ; Perform the blit.
-   pop cx ; Restore loop counter.
-   inc cx ; Increment cx (lines copied).
+   mov word ax, [ds:si] ; Move current source line into ax.
+   xor word [es:di], ax ; XOR source line onto dest line.
+   mov word ax, [ds:si + 2] ; Move current source line into ax.
+   xor word [es:di + 2], ax ; XOR source line onto dest line.
+   add si, 4 ; Increment source line by 4 bytes for the two XORs above.
+   inc cx ; Increment cx (total lines copied).
    cmp cx, 16 ; Copied 16 lines yet?
    jl sprite_copy_start ; Keep copying lines.
-sprite_copy_cleanup:
    pop dx ; Restore original dx.
    pop cx ; Restore original cx.
    pop ax ; Restore original ax.
-   ret
+   pop bp ; Restore stack bottom stored at start of sprite_copy.
+   ret 6 ; Return and dispose of 
 
 ; = MIDI Wait =
 
