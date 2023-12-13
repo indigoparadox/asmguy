@@ -43,10 +43,11 @@ scr_clear_plane:
    ret
 
 scr_clear:
-   mov ax, 0aah ; Blocks of whole bytes.
+   ;mov ax, 0aah ; Blocks of whole bytes.
+   xor ax, ax
    xor di, di ; Set offset to CGA plane 1.
    call scr_clear_plane
-   mov ax, 055h ; Blocks of whole bytes.
+   ;mov ax, 055h ; Blocks of whole bytes.
    mov di, 02000h ; Set offset to CGA plane 2.
    call scr_clear_plane
    ret

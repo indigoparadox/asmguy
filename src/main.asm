@@ -49,6 +49,9 @@ char_q:
 
 ; = Draw Map =
 
+; Stack:
+; - Pointer to the map tiles array to draw from.
+
 map_blit:
    push bp ; Stow stack bottom.
    mov bp, sp ; Put stack pointer on bp so we can do arithmetic below.
@@ -56,30 +59,39 @@ map_blit:
    push bx
    push dx
    xor bx, bx ; Zero loop iterator.
-   
 map_blit_tile:
-   mov ax, bx
+   mov ax, bx ; Put loop counter in ax for div.
    push bx ; Stow loop iterator so div can use bx.
+   push si ; Stow si so we can index some arrays.
+   mov si, ax ; Add loop counter to map tiles array.
+   add si, [bp + 4] ; Add offset to map passed as arg.
+   xor bx, bx ; Zero out bx.
+   mov bl, [si] ; Get single-byte index of tile in tileset from map.
+   shl bx, 1 ; Multiply tile index by 2 since tileset is word array.
+   add bx, tileset ; Add memory offset of tileset index array.
+   cmp word [bx], 0 ; See if tile is blank.
+   je map_blit_tile_blank
    push 0 ; Arg to blit: Copy sprite.
-   push s_maid01 ; Push pointer to player sprite.
-   mov bx, 20 ; Maps are 20 tiles wide (300px / 16px).
-   xor dx, dx
-   div bx
-   shl ax, 3
+   push word [bx] ; Pointer to tile to draw.
+   xor dx, dx ; Zero out dx for div.
+   mov bx, 20 ; Divisor: Maps are 20 tiles wide (300px / 16px).
+   div bx ; Get X/Y of this tile: divide loop counter (ax) by bx.
+   shl ax, 3 ; Multiply Y by tile height.
    push ax ; Push tile Y (idx / tile width).
-   shl dx, 2
+   shl dx, 2 ; Multiply X by tile width.
    push dx ; Push tile X (idx % tile width).
    call blit
-   pop bx
-   inc bx
-   cmp bx, 240
+map_blit_tile_blank:
+   pop si ; Restore si pushed at start of map_blit_tile.
+   pop bx ; Restore loop counter pushed at start of map_blit_tile.
+   inc bx ; Increment loop counter.
+   cmp bx, 240 ; If we've reached the maximum tiles in a map, quit.
    jne map_blit_tile
-
    pop dx
    pop bx
    pop ax
    pop bp ; Restore stack bottom stored at start of char_mv.
-   ret
+   ret 2 ; Skip arg (map to blit).
 
 ; = Program Start/Setup =
 
@@ -97,6 +109,7 @@ scr_setup_done:
 
    call midi_init
 
+   push map_field
    call map_blit
 
    push 1 ; XOR to copy sprite.
@@ -151,7 +164,7 @@ keys_vr: dw y,   y,   x,   x,   0,   0
 keys_nt: db 20,  40,  60,  80,  0,   0
 keys_cb: dw char_mv, char_mv, char_mv, char_mv, char_q, 0
 
-map_tiles: dw 0, t_rock
+tileset: dw 0, t_rock
 map_field: db \
    01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, \
    01h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 01h, \
