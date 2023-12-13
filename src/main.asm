@@ -15,10 +15,10 @@ char_mv:
    push word [bp + 4] ; Pitch
    push 0 ; Channel
    call midi_note_on
-   push 1
-   push s_maid01
-   push word [y]
-   push word [x]
+   push 1 ; XOR to copy sprite (to erase previous position).
+   push s_maid01 ; Push pointer to player sprite.
+   push word [y] ; Push  player old Y.
+   push word [x] ; Push  player old X.
    call blit
    mov si, [bp + 8] ; Put the address of the char's location in si.
    cmp word [bp + 6], 1 ; Check the stack arg to see if we inc/dec.
@@ -30,10 +30,10 @@ char_mv_inc:
 char_mv_dec:
    dec word [si] ; Decrement X/Y.
 char_mv_cleanup:
-   push 1
-   push s_maid01
-   push word [y]
-   push word [x]
+   push 1 ; XOR to copy sprite.
+   push s_maid01 ; Push pointer to player sprite.
+   push word [y] ; Push player new Y.
+   push word [x] ; Push player new X.
    call blit
    pop bp ; Restore stack bottom stored at start of char_mv.
    ret 6 ; Return and dispose of 3 word args (pitch/dec/loc).
@@ -46,6 +46,40 @@ char_q:
    pop ax ; Dispose of key callback pointer.
    pop ax ; Pop the return address from call... We're not coming back!
    jmp prog_shutdown
+
+; = Draw Map =
+
+map_blit:
+   push bp ; Stow stack bottom.
+   mov bp, sp ; Put stack pointer on bp so we can do arithmetic below.
+   push ax
+   push bx
+   push dx
+   xor bx, bx ; Zero loop iterator.
+   
+map_blit_tile:
+   mov ax, bx
+   push bx ; Stow loop iterator so div can use bx.
+   push 0 ; Arg to blit: Copy sprite.
+   push s_maid01 ; Push pointer to player sprite.
+   mov bx, 20 ; Maps are 20 tiles wide (300px / 16px).
+   xor dx, dx
+   div bx
+   shl ax, 3
+   push ax ; Push tile Y (idx / tile width).
+   shl dx, 2
+   push dx ; Push tile X (idx % tile width).
+   call blit
+   pop bx
+   inc bx
+   cmp bx, 240
+   jne map_blit_tile
+
+   pop dx
+   pop bx
+   pop ax
+   pop bp ; Restore stack bottom stored at start of char_mv.
+   ret
 
 ; = Program Start/Setup =
 
@@ -63,10 +97,12 @@ scr_setup_done:
 
    call midi_init
 
-   push 1
-   push s_maid01
-   push word [y]
-   push word [x]
+   call map_blit
+
+   push 1 ; XOR to copy sprite.
+   push s_maid01 ; Push pointer to player sprite.
+   push word [y] ; Push  player Y.
+   push word [x] ; Push  player X.
    call blit
 
 loop:
@@ -114,6 +150,21 @@ keys_dc: dw 2h,  1h,  2h,  1h,  0,   0
 keys_vr: dw y,   y,   x,   x,   0,   0
 keys_nt: db 20,  40,  60,  80,  0,   0
 keys_cb: dw char_mv, char_mv, char_mv, char_mv, char_q, 0
+
+map_tiles: dw 0, t_rock
+map_field: db \
+   01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, \
+   01h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 01h, \
+   01h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 01h, \
+   01h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 01h, \
+   01h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 01h, \
+   01h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 01h, \
+   01h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 01h, \
+   01h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 01h, \
+   01h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 01h, \
+   01h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 01h, \
+   01h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 00h, 01h, \
+   01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h, 01h
 
 [SECTION .bss]
 
