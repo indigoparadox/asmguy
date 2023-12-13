@@ -54,11 +54,12 @@ scr_clear:
 ; = Copy Sprite =
 
 ; Stack:
+; - Word 1 to use XOR or 0 to straight copy.
 ; - Pointer to the sprite data to XOR.
 ; - Y coordinate to draw on-screen.
 ; - X coordinate to draw on-screen.
 
-sprite_copy:
+blit:
    push bp ; Stow stack bottom.
    mov bp, sp ; Put stack pointer on bp so we can do arithmetic below.
    push ax ; Stow ax for a moment (Working reg).
@@ -66,7 +67,7 @@ sprite_copy:
    push dx ; Stow dx for a moment (Used by mul).
    mov si, [bp + 8]
    mov cx, 0 ; Initialize offset in lines.
-sprite_copy_start:
+blit_start:
    mov ax, cx ; Offset vertically by iterated lines in current sprite.
    shr ax, 1 ; Shift 1, divide lines by 2.
    add ax, [bp + 6] ; Offset vertically by Y coord.
@@ -74,23 +75,33 @@ sprite_copy_start:
    mul dx ; Multiply ax (cx/lines offset) by dx (screen width in bytes).
    add ax, [bp + 4] ; Offset horizontally by X coord.
    mov di, ax ; Move result into destination offset.
+   mov dx, [bp + 10]
    test cx, 1 ; Check if cx/lines offset is even.
-   jz sprite_copy_line
-   add di, 2000h ; If not even, copy to second CGA plane.
-sprite_copy_line:
+   jz blit_line
+   add di, 2000h ; If not even, blit to second CGA plane.
+blit_line:
+   cmp dx, 1
+   je blit_line_xor
+   push cx ; Stow loop counter.
+   mov cx, 4 ; rep movsb 4 times (4 * 4 px (1 byte) = 16px)
+   rep movsb ; Perform the blit.
+   pop cx ; Restore loop counter.
+   jmp blit_line_done
+blit_line_xor:
    mov word ax, [ds:si] ; Move current source line into ax.
    xor word [es:di], ax ; XOR source line onto dest line.
    mov word ax, [ds:si + 2] ; Move current source line into ax.
    xor word [es:di + 2], ax ; XOR source line onto dest line.
    add si, 4 ; Increment source line by 4 bytes for the two XORs above.
+blit_line_done:
    inc cx ; Increment cx (total lines copied).
    cmp cx, 16 ; Copied 16 lines yet?
-   jl sprite_copy_start ; Keep copying lines.
+   jl blit_start ; Keep blitting lines.
    pop dx ; Restore original dx.
    pop cx ; Restore original cx.
    pop ax ; Restore original ax.
-   pop bp ; Restore stack bottom stored at start of sprite_copy.
-   ret 6 ; Return and dispose of 
+   pop bp ; Restore stack bottom stored at start of blit.
+   ret 8 ; Return and dispose of 
 
 ; = MIDI Wait =
 

@@ -15,10 +15,11 @@ char_mv:
    push word [bp + 4] ; Pitch
    push 0 ; Channel
    call midi_note_on
+   push 1
    push s_maid01
    push word [y]
    push word [x]
-   call sprite_copy
+   call blit
    mov si, [bp + 8] ; Put the address of the char's location in si.
    cmp word [bp + 6], 1 ; Check the stack arg to see if we inc/dec.
    je char_mv_inc
@@ -29,10 +30,11 @@ char_mv_inc:
 char_mv_dec:
    dec word [si] ; Decrement X/Y.
 char_mv_cleanup:
+   push 1
    push s_maid01
    push word [y]
    push word [x]
-   call sprite_copy
+   call blit
    pop bp ; Restore stack bottom stored at start of char_mv.
    ret 6 ; Return and dispose of 3 word args (pitch/dec/loc).
 
@@ -61,10 +63,11 @@ scr_setup_done:
 
    call midi_init
 
+   push 1
    push s_maid01
    push word [y]
    push word [x]
-   call sprite_copy
+   call blit
 
 loop:
    call poll_key

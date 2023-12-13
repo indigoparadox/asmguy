@@ -2,7 +2,7 @@
 # vi:syntax=make noexpandtab
 
 ASMS := src/main.asm src/assets.asm
-ASSETS := s_maid01.bmp
+ASSETS := s_maid01.bmp s_maid02.bmp
 CFLAGS := -fsanitize=undefined -fsanitize=address -g -Wall --std=c89 -DDEBUG_BMP
 
 all: asmguy.com
