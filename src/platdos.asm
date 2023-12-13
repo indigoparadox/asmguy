@@ -182,6 +182,35 @@ midi_note_on_cleanup:
 ;   pop ax ; Restore ax stowed at start of midi_note_on.
 ;   ret
 
+; = Beep =
+
+spkr_beep:
+   push bp ; Stow stack bottom.
+   mov bp, sp ; Put stack pointer on bp so we can do arithmetic below.
+   push ax
+   push bx
+   mov bx, [bp + 4] ; Initialize the countdown.
+   mov al, 0b6h
+   out 43h, al
+   mov ax, [bp + 6] ; Grab frequency divisor arg.
+   out 42h, al ; Send lower bits of frequency divisor.
+   mov al, ah ; We can't push to out directly from ah.
+   out 42h, al ; Send upper bits of frequency divisor.
+   in al, 61h ; Get the keyboard controller status.
+   or al, 3h ; Turn on the bits that enable the PC speaker.
+   out 61h, al ; Set the new keyboard controller status.
+spkr_beep_wait: ; TODO: Use interrupt counter.
+   dec bx ; Decrement the countdown.
+   cmp bx, 0 ; Check if the countdown has expired.
+   jne spkr_beep_wait
+   in al, 61h ; Get the keyboard controller status.
+   and al, 0fch ; Turn off the bits that enable the PC speaker.
+   out 61h, al ; Set the new keyboard controller status.
+   pop bx
+   pop ax
+   pop bp ; Restore stack bottom stored at start of midi_note_on.
+   ret 4
+
 ; = Program End =
 
 prog_shutdown:

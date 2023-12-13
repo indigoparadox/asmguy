@@ -11,10 +11,13 @@
 char_mv:
    push bp ; Stow stack bottom.
    mov bp, sp ; Put stack pointer on bp so we can do arithmetic below.
-   push 127 ; Velocity
-   push word [bp + 4] ; Pitch
-   push 0 ; Channel
-   call midi_note_on
+   ;push 127 ; Velocity
+   ;push word [bp + 4] ; Pitch
+   ;push 0 ; Channel
+   ;call midi_note_on
+   push word 15000
+   push word 1000
+   call spkr_beep
    push 1 ; XOR to copy sprite (to erase previous position).
    push s_maid01 ; Push pointer to player sprite.
    push word [y] ; Push  player old Y.
