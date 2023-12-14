@@ -16,7 +16,7 @@ char_mv:
    ;push 0 ; Channel
    ;call midi_note_on
    push word 15000
-   push word 1000
+   push word 5 ; Beep for 15 ticks.
    call spkr_beep
    push 1 ; XOR to copy sprite (to erase previous position).
    push s_maid01 ; Push pointer to player sprite.

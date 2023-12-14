@@ -189,7 +189,6 @@ spkr_beep:
    mov bp, sp ; Put stack pointer on bp so we can do arithmetic below.
    push ax
    push bx
-   mov bx, [bp + 4] ; Initialize the countdown.
    mov al, 0b6h
    out 43h, al
    mov ax, [bp + 6] ; Grab frequency divisor arg.
@@ -199,10 +198,17 @@ spkr_beep:
    in al, 61h ; Get the keyboard controller status.
    or al, 3h ; Turn on the bits that enable the PC speaker.
    out 61h, al ; Set the new keyboard controller status.
-spkr_beep_wait: ; TODO: Use interrupt counter.
-   dec bx ; Decrement the countdown.
-   cmp bx, 0 ; Check if the countdown has expired.
-   jne spkr_beep_wait
+
+   call ticks_get ; Put the current ticks on ax.
+   mov bx, ax ; Initialize the countdown.
+   add bx, [bp + 4] ; Initialize the countdown.
+spkr_beep_wait:
+   ; TODO: Handle tick overflow.
+   call ticks_get ; Put the current ticks on ax.
+   cmp bx, ax ; Check if the starting ticks + countdown delay > current ticks.
+   hlt
+   jg spkr_beep_wait ; Repeat if so.
+   ; TODO: Fix persistent clicking?
    in al, 61h ; Get the keyboard controller status.
    and al, 0fch ; Turn off the bits that enable the PC speaker.
    out 61h, al ; Set the new keyboard controller status.
@@ -210,6 +216,54 @@ spkr_beep_wait: ; TODO: Use interrupt counter.
    pop ax
    pop bp ; Restore stack bottom stored at start of midi_note_on.
    ret 4
+
+; = Get System Ticks =
+
+; Return: current ticks on ax.
+
+ticks_get:
+   push ds ; Stow ds.
+   mov ax, 40h ; Put the BIOS data segment in bx.
+   mov ds, ax ; Put bx into ds.
+   mov ax, [ds:6ch] ; Put the current ticks on the stack.
+   pop ds
+   ret
+
+; = Print Number String =
+
+; Stack:
+; - Word-sized integer to print.
+
+print_num:
+   push bp ; Stow stack bottom.
+   mov bp, sp ; Put stack pointer on bp so we can do arithmetic below.
+   push ax ; Stow ax.
+   push bx ; Stow bx.
+   push dx ; Stow dx.
+   push word [bp + 4] ; Put input number on the new stack.
+   mov bx, 10000 ; Initialize tens place counter.
+print_num_digit:
+   xor dx, dx ; Zero out dx.
+   pop ax ; Put remainder of input number into ax.
+   div bx ; Divide remainder of input number (ax) by tens place (bx).
+   push dx ; Put new remainder of input number on the stack.
+   mov dx, ax ; Move quotient of input number to dx.
+   add dl, '0' ; Make quotient into printable digit.
+   mov ax, 0200h ; Select Print Character service.
+   int 21h ; Call DOS function IRQ.
+   xor dx, dx ; Zero out dx.
+   mov ax, bx ; Put tens place counter into ax.
+   mov bx, 10 ; Dividing by 10 reduces the tens place by 1.
+   div bx ; Divide tens place counter by 10.
+   mov bx, ax ; Put new tens place counter back into bx.
+   cmp bx, 0 ; Check tens place counter.
+   jg print_num_digit
+   pop ax ; Pop remaining remainder.
+   pop dx ; Restore stowed dx.
+   pop bx ; Restore stowed bx.
+   pop ax ; Restore stowed ax.
+   pop bp
+   ret 2 ; Return and dispose of 
 
 ; = Program End =
 
