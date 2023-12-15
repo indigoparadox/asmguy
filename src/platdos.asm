@@ -4,6 +4,8 @@ org 100h ; Tell the assembler where the program will be loaded.
 cpu 186 ; Tell the assembler not to allow instructions for the 286+.
 jmp start ; Skip utility routines.
 
+%define FLAGS_BEEPING 1b
+
 ; = Poll Key =
 
 ; Registers out: ax = 0 if no key pressed.
@@ -191,38 +193,36 @@ midi_note_on_cleanup:
 ; = Beep =
 
 ; TODO: Transform this into a "start beeping" and schedule a stop later.
+; TODO: Fix persistent clicking?
 
-spkr_beep:
+spkr_beep_on:
    push bp ; Stow stack bottom.
    mov bp, sp ; Put stack pointer on bp so we can do arithmetic below.
    push ax
-   push bx
+   ; TODO: Save the values on init and restore them later.
    mov al, 0b6h
    out 43h, al
-   mov ax, [bp + 6] ; Grab frequency divisor arg.
+   mov ax, [bp + 4] ; Grab frequency divisor arg.
    out 42h, al ; Send lower bits of frequency divisor.
    mov al, ah ; We can't push to out directly from ah.
    out 42h, al ; Send upper bits of frequency divisor.
    in al, 61h ; Get the keyboard controller status.
    or al, 3h ; Turn on the bits that enable the PC speaker.
    out 61h, al ; Set the new keyboard controller status.
-   call ticks_get ; Put the current ticks on ax.
-   mov bx, ax ; Initialize the countdown.
-   add bx, [bp + 4] ; Initialize the countdown.
-spkr_beep_wait:
-   ; TODO: Handle tick overflow.
-   call ticks_get ; Put the current ticks on ax.
-   cmp bx, ax ; Check if the starting ticks + countdown delay > current ticks.
-   hlt
-   jg spkr_beep_wait ; Repeat if so.
-   ; TODO: Fix persistent clicking?
+   pop ax
+   pop bp ; Restore stack bottom stored at start of spkr_beep_off.
+   ret 2
+
+spkr_beep_off:
+   push bp ; Stow stack bottom.
+   mov bp, sp ; Put stack pointer on bp so we can do arithmetic below.
+   push ax
    in al, 61h ; Get the keyboard controller status.
    and al, 0fch ; Turn off the bits that enable the PC speaker.
    out 61h, al ; Set the new keyboard controller status.
-   pop bx
    pop ax
-   pop bp ; Restore stack bottom stored at start of midi_note_on.
-   ret 4
+   pop bp ; Restore stack bottom stored at start of spkr_beep_off.
+   ret
 
 ; = Get System Ticks =
 

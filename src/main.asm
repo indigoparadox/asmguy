@@ -16,10 +16,18 @@ char_mv:
    ;push word [bp + 4] ; Pitch
    ;push 0 ; Channel
    ;call midi_note_on
-   
-   ;push word 15000
+   cmp word [beep_stop_ticks], 0
+   jg char_mv_skip_beep ; Skip beep if beep already in progress.
+   push ax
+   push word 15000
    ;push word 9 ; Beep for 9 ticks (half a second).
-   ;call spkr_beep
+   call spkr_beep_on
+   ; TODO: Handle ticks rollover.
+   call ticks_get
+   add ax, 5
+   add [beep_stop_ticks], ax
+   pop ax
+char_mv_skip_beep:
    push 1 ; XOR to copy sprite (to erase previous position).
    push s_maid01 ; Push pointer to player sprite.
    push word [y] ; Push  player old Y.
@@ -108,10 +116,9 @@ scr_setup_done:
 
 ; = Program Main Loop =
 
-   mov ax, 5
-   mov [x], ax ; Initialize X coord of sprite.
-   mov ax, 10
-   mov [y], ax ; Initialize Y coord of sprite.
+   mov word [x], 5 ; Initialize X coord of sprite.
+   mov word [y], 10 ; Initialize Y coord of sprite.
+   mov word [beep_stop_ticks], 0
 
    call midi_init
 
@@ -133,6 +140,12 @@ loop:
    jl loop ; If we're not at the next tick, go back to loop.
    mov bx, ax ; Stow new next tick in bx for now.
    add bx, 2 ; Wait 2 ticks for the next poll.
+   ; TODO: Handle rollover.
+   cmp [beep_stop_ticks], ax ; Check beep stop ticks schedule.
+   jg check_key_init ; If beep stop ticks in the future then ignore.
+   call spkr_beep_off
+   mov word [beep_stop_ticks], 0
+check_key_init:
    call poll_key
    jz loop ; All keys checked, return to loop.
    mov bx, 0 ; Initialize loop iterator.
@@ -197,4 +210,5 @@ map_field: db \
 
 x: resb 2
 y: resb 2
+beep_stop_ticks: resb 2
 
