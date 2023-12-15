@@ -11,13 +11,15 @@
 char_mv:
    push bp ; Stow stack bottom.
    mov bp, sp ; Put stack pointer on bp so we can do arithmetic below.
+   push si
    ;push 127 ; Velocity
    ;push word [bp + 4] ; Pitch
    ;push 0 ; Channel
    ;call midi_note_on
-   push word 15000
-   push word 5 ; Beep for 15 ticks.
-   call spkr_beep
+   
+   ;push word 15000
+   ;push word 9 ; Beep for 9 ticks (half a second).
+   ;call spkr_beep
    push 1 ; XOR to copy sprite (to erase previous position).
    push s_maid01 ; Push pointer to player sprite.
    push word [y] ; Push  player old Y.
@@ -38,6 +40,7 @@ char_mv_cleanup:
    push word [y] ; Push player new Y.
    push word [x] ; Push player new X.
    call blit
+   pop si
    pop bp ; Restore stack bottom stored at start of char_mv.
    ret 6 ; Return and dispose of 3 word args (pitch/dec/loc).
 
@@ -121,7 +124,15 @@ scr_setup_done:
    push word [x] ; Push  player X.
    call blit
 
+   mov bx, 0 ; Clear next tick.
+
 loop:
+   hlt ; Sleep for a moment.
+   call ticks_get
+   cmp ax, bx ; Compare next tick vs current ticks.
+   jl loop ; If we're not at the next tick, go back to loop.
+   mov bx, ax ; Stow new next tick in bx for now.
+   add bx, 2 ; Wait 2 ticks for the next poll.
    call poll_key
    jz loop ; All keys checked, return to loop.
    mov bx, 0 ; Initialize loop iterator.

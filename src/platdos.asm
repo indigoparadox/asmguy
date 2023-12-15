@@ -23,6 +23,8 @@ poll_key_done:
 
 ; = Setup Screen =
 
+; TODO: Refactor this so it can be called with call.
+
 scr_setup:
    push es ; Save dest segment to restore at end.
    mov bx, 0b800h ; CGA video memory segment.
@@ -30,7 +32,6 @@ scr_setup:
    mov ax, 0f00h ; Get video mode.
    int 010h ; Call video interrupt.
    push ax ; Save video mode to restore at end.
-
    mov ax, 04h ; CGA mode 320x200x4.
    int 010h ; Call video interrupt.
    jmp scr_setup_done
@@ -43,6 +44,9 @@ scr_clear_plane:
    ret
 
 scr_clear:
+   push bp ; Stow stack bottom.
+   mov bp, sp ; Put stack pointer on bp so we can do arithmetic below.
+   push ax
    ;mov ax, 0aah ; Blocks of whole bytes.
    xor ax, ax
    xor di, di ; Set offset to CGA plane 1.
@@ -50,6 +54,8 @@ scr_clear:
    ;mov ax, 055h ; Blocks of whole bytes.
    mov di, 02000h ; Set offset to CGA plane 2.
    call scr_clear_plane
+   pop ax
+   pop bp ; Restore stack bottom stored at start of blit.
    ret
 
 ; = Copy Sprite =
@@ -184,6 +190,8 @@ midi_note_on_cleanup:
 
 ; = Beep =
 
+; TODO: Transform this into a "start beeping" and schedule a stop later.
+
 spkr_beep:
    push bp ; Stow stack bottom.
    mov bp, sp ; Put stack pointer on bp so we can do arithmetic below.
@@ -198,7 +206,6 @@ spkr_beep:
    in al, 61h ; Get the keyboard controller status.
    or al, 3h ; Turn on the bits that enable the PC speaker.
    out 61h, al ; Set the new keyboard controller status.
-
    call ticks_get ; Put the current ticks on ax.
    mov bx, ax ; Initialize the countdown.
    add bx, [bp + 4] ; Initialize the countdown.
