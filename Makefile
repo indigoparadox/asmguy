@@ -2,7 +2,7 @@
 # vi:syntax=make noexpandtab
 
 ASMS := src/main.asm src/assets.asm
-ASSETS := s_maid01.bmp s_maid02.bmp t_rock.bmp
+ASSETS := $(wildcard assets/*.bmp)
 CFLAGS := -fsanitize=undefined -fsanitize=address -g -Wall --std=c89 -DDEBUG_BMP
 
 all: asmguy.com asmguy.img
@@ -21,7 +21,7 @@ tools/assetimg: tools/assetimg.c
 assets/%.asm: tools/assetimg
 	tools/assetimg $(subst .asm,.bmp,$@) $(subst assets/,,$(basename $@)) > $@
 
-src/assets.asm: $(addprefix assets/,$(subst .bmp,.asm,$(ASSETS)))
+src/assets.asm: $(subst .bmp,.asm,$(ASSETS))
 	cat $^ > $@
 
 clean:
